@@ -42,7 +42,7 @@ open-source libraries, dubbed 'decoding backends'. These libraries include...
 | libxmp-lite          | .it, .mod, .s3m, .xm                                                | MIT                               | Yes      |
 | PxTone               | PxTone Music/PxTone Noise                                           | Custom (appears to be permissive) | Yes      |
 | snes_spc             | SNES SPC                                                            | LGPL 2.1                          | Yes      |
-| AudioToolbox (macOS) | Various (includes Ogg Vorbis, FLAC, WAV, AIFF, and others)          | BSD0                              | Yes      |
+| AudioToolbox (macOS) | Various (includes MP3, M4A, WAV, AIFF, and others)                  | BSD0                              | Yes      |
 
 clownaudio aims to be bloat-free and dependency-free: each decoding backend can
 be toggled at compile-time, and an effort is made to provide multiple backends

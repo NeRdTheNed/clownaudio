@@ -72,7 +72,6 @@ void* Decoder_AUDIOTOOLBOX_Create(const unsigned char *data, size_t data_size, b
 	Decoder_AudioToolbox_callback_data *decoder_callback_data = (Decoder_AudioToolbox_callback_data*)malloc(sizeof(Decoder_AudioToolbox_callback_data));
 
 	(void)loop;
-	(void)wanted_spec;
 
 	if (decoder_callback_data != NULL)
 	{
@@ -109,7 +108,8 @@ void* Decoder_AUDIOTOOLBOX_Create(const unsigned char *data, size_t data_size, b
 					                             ;
 					output_format.mSampleRate = input_file_format.mSampleRate;
 					output_format.mBitsPerChannel = 16;
-					output_format.mChannelsPerFrame = input_file_format.mChannelsPerFrame;
+					/* Clamp output channels to wanted channels, as otherwise an ear-splitting tone plays for files with more than 2 channels */
+					output_format.mChannelsPerFrame = input_file_format.mChannelsPerFrame > wanted_spec->channel_count ? wanted_spec->channel_count : input_file_format.mChannelsPerFrame;
 					/* kAudioFormatLinearPCM doesn't use packets */
 					output_format.mFramesPerPacket = 1;
 					/* Bytes per channel * channels per frame */

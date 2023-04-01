@@ -106,7 +106,12 @@ void* Decoder_AUDIOTOOLBOX_Create(const unsigned char *data, size_t data_size, b
 					                             | kAudioFormatFlagIsBigEndian
 				#endif
 					                             ;
+				#ifdef CLOWNAUDIO_AUDIOTOOLBOX_USE_APPLE_RESAMPLER
+					/* Let AudioToolbox handle resampling */
+					output_format.mSampleRate = wanted_spec->sample_rate == 0 ? input_file_format.mSampleRate : wanted_spec->sample_rate;
+				#else
 					output_format.mSampleRate = input_file_format.mSampleRate;
+				#endif
 					output_format.mBitsPerChannel = 16;
 					/* Clamp output channels to wanted channels, as otherwise an ear-splitting tone plays for files with more than 2 channels */
 					output_format.mChannelsPerFrame = input_file_format.mChannelsPerFrame > wanted_spec->channel_count ? wanted_spec->channel_count : input_file_format.mChannelsPerFrame;

@@ -21,6 +21,9 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <stddef.h>
 #include <stdlib.h>
 
+#ifdef CLOWNAUDIO_POCKETMOD_NO_INTERPOLATION
+#define POCKETMOD_NO_INTERPOLATION
+#endif
 #define POCKETMOD_INT_PCM
 #define POCKETMOD_IMPLEMENTATION
 #include "libs/pocketmod.h"

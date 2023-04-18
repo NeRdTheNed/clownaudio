@@ -57,6 +57,9 @@
 #ifdef CLOWNAUDIO_LIBXMP
 #include "decoders/libxmp.h"
 #endif
+#ifdef CLOWNAUDIO_POCKETMOD
+#include "decoders/pocketmod.h"
+#endif
 #ifdef CLOWNAUDIO_PXTONE
 #include "decoders/pxtone.h"
 #include "decoders/pxtone_noise.h"
@@ -141,6 +144,9 @@ static const DecoderFunctions decoder_function_list[] = {
 #endif
 #ifdef CLOWNAUDIO_PXTONE
 	DECODER_FUNCTIONS(PxTone),
+#endif
+#ifdef CLOWNAUDIO_POCKETMOD
+	DECODER_FUNCTIONS(POCKETMOD),
 #endif
 #ifdef CLOWNAUDIO_PXTONE
 	DECODER_FUNCTIONS(PxToneNoise),

@@ -70,6 +70,9 @@
 #ifdef CLOWNAUDIO_OSWRAPPER_AUDIO
 #include "decoders/oswrapper_audio.h"
 #endif
+#ifdef CLOWNAUDIO_AUDIOTOOLBOX
+#include "decoders/audiotoolbox.h"
+#endif
 
 #define DECODER_FUNCTIONS(name) \
 { \
@@ -156,6 +159,9 @@ static const DecoderFunctions decoder_function_list[] = {
 #endif
 #ifdef CLOWNAUDIO_OSWRAPPER_AUDIO
 	DECODER_FUNCTIONS(OSWRAPPER_AUDIO),
+#endif
+#ifdef CLOWNAUDIO_AUDIOTOOLBOX
+	DECODER_FUNCTIONS(AUDIOTOOLBOX),
 #endif
 };
 

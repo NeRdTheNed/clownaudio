@@ -214,8 +214,6 @@ void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate
 
 			free(resampled_decoder);
 		}
-
-		next_stage->Destroy(next_stage->decoder);
 	}
 
 	return NULL;

@@ -190,11 +190,20 @@ void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate
 			resampled_decoder->out_channel_count = wanted_spec->channel_count;
 
 		#ifdef CLOWNAUDIO_CLOWNRESAMPLER
-			/* Set a wide sample rate ratio so that the low-pass filter can be wildly-adjusted. */
-			if (ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, 0x100, 1, resampled_decoder->low_pass_filter_sample_rate))
+			if (dynamic_sample_rate)
 			{
-				/* Apply the actual sample rates. */
-				if (ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate))
+				/* Set a wide sample rate ratio so that the low-pass filter can be wildly-adjusted. */
+				if (ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, 0x100, 1, resampled_decoder->low_pass_filter_sample_rate))
+				{
+					/* Apply the actual sample rates. */
+					if (ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate))
+						return resampled_decoder;
+				}
+			}
+			else
+			{
+				/* Just do things the normal way. */
+				if (ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate))
 					return resampled_decoder;
 			}
 		#else

@@ -27,6 +27,7 @@
 #ifdef CLOWNAUDIO_CLOWNRESAMPLER
  #define CLOWNRESAMPLER_IMPLEMENTATION
  #define CLOWNRESAMPLER_STATIC
+ #define CLOWNRESAMPLER_NO_HIGH_LEVEL_RESAMPLE_END
  #include "clownresampler/clownresampler.h"
 #else
  #define MA_NO_DECODING
@@ -71,12 +72,22 @@ typedef struct ResampledDecoder
 } ResampledDecoder;
 
 #ifdef CLOWNAUDIO_CLOWNRESAMPLER
+typedef struct ResamplerCallbackData
+{
+	ResampledDecoder *resampled_decoder;
+	short *output_pointer;
+	size_t output_buffer_frames_remaining;
+} ResamplerCallbackData;
+#endif
+
+#ifdef CLOWNAUDIO_CLOWNRESAMPLER
 static ClownResampler_Precomputed clownresampler_precomputed;
 static bool clownresampler_precomputed_done;
 
-static size_t ResamplerCallback(const void *user_data, short *buffer, size_t buffer_size)
+static size_t ResamplerInputCallback(void* const user_data, cc_s16l* const buffer, const size_t buffer_size)
 {
-	ResampledDecoder *resampled_decoder = (ResampledDecoder*)user_data;
+	const ResamplerCallbackData* const callback_data = (ResamplerCallbackData*)user_data;
+	ResampledDecoder* const resampled_decoder = callback_data->resampled_decoder;
 
 	short temporary_buffer[0x400];
 
@@ -96,7 +107,7 @@ static size_t ResamplerCallback(const void *user_data, short *buffer, size_t buf
 
 	const size_t frames_read = resampled_decoder->next_stage.GetSamples(resampled_decoder->next_stage.decoder, selected_buffer, selected_buffer_size);
 
-	const short *in_buffer_pointer = temporary_buffer;
+	const short *in_buffer_pointer = selected_buffer;
 	short *out_buffer_pointer = buffer;
 
 	if (resampled_decoder->in_channel_count == 2 && resampled_decoder->out_channel_count == 1)
@@ -122,6 +133,34 @@ static size_t ResamplerCallback(const void *user_data, short *buffer, size_t buf
 
 	return frames_read;
 }
+
+static cc_bool ResamplerOutputCallback(void* const user_data, const cc_s32f* const frame, const cc_u8f total_samples)
+{
+	ResamplerCallbackData* const callback_data = (ResamplerCallbackData*)user_data;
+
+	cc_u8f i;
+
+	/* Output the frame. */
+	for (i = 0; i < total_samples; ++i)
+	{
+		cc_s32f sample;
+
+		sample = frame[i];
+
+		/* Clamp the sample to 16-bit. */
+		if (sample > 0x7FFF)
+			sample = 0x7FFF;
+		else if (sample < -0x7FFF)
+			sample = -0x7FFF;
+
+		/* Push the sample to the output buffer. */
+		*callback_data->output_pointer++ = (short)sample;
+	}
+
+	/* Signal whether there is more room in the output buffer. */
+	return --callback_data->output_buffer_frames_remaining != 0;
+}
+
 #endif
 
 void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate, const DecoderSpec *wanted_spec, const DecoderSpec *child_spec)
@@ -152,9 +191,11 @@ void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate
 			resampled_decoder->in_channel_count = child_spec->channel_count;
 			resampled_decoder->out_channel_count = wanted_spec->channel_count;
 
-			/* TODO - Channel count conversion */
 		#ifdef CLOWNAUDIO_CLOWNRESAMPLER
-			ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, resampled_decoder->in_sample_rate, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
+			/* Set a wide sample rate ratio so that the low-pass filter can be wildly-adjusted. */
+			ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, 0x100, 1, resampled_decoder->low_pass_filter_sample_rate);
+			/* Apply the actual sample rates. */
+			ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
 			return resampled_decoder;
 		#else
 			ma_data_converter_config config = ma_data_converter_config_init(ma_format_s16, ma_format_s16, child_spec->channel_count, wanted_spec->channel_count, resampled_decoder->in_sample_rate, resampled_decoder->out_sample_rate);
@@ -204,7 +245,14 @@ size_t ResampledDecoder_GetSamples(void *resampled_decoder_void, short *buffer, 
 	ResampledDecoder *resampled_decoder = (ResampledDecoder*)resampled_decoder_void;
 
 #ifdef CLOWNAUDIO_CLOWNRESAMPLER
-	return ClownResampler_HighLevel_Resample(&resampled_decoder->clownresampler_state, &clownresampler_precomputed, buffer, frames_to_do, ResamplerCallback, resampled_decoder);
+	ResamplerCallbackData callback_data;
+	callback_data.resampled_decoder = resampled_decoder;
+	callback_data.output_pointer = buffer;
+	callback_data.output_buffer_frames_remaining = frames_to_do;
+
+	ClownResampler_HighLevel_Resample(&resampled_decoder->clownresampler_state, &clownresampler_precomputed, ResamplerInputCallback, ResamplerOutputCallback, &callback_data);
+
+	return frames_to_do - callback_data.output_buffer_frames_remaining;
 #else
 	size_t frames_done = 0;
 
@@ -249,7 +297,7 @@ void ResampledDecoder_SetSpeed(void *resampled_decoder_void, unsigned long speed
 	resampled_decoder->in_sample_rate_scaled = upper_multiply + (lower_multiply >> 16);
 
 #ifdef CLOWNAUDIO_CLOWNRESAMPLER
-	ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
+	ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
 #else
 	ma_data_converter_set_rate(&resampled_decoder->converter, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate);
 #endif
@@ -262,7 +310,7 @@ void ResampledDecoder_SetLowPassFilter(void *resampled_decoder_void, unsigned lo
 	resampled_decoder->low_pass_filter_sample_rate = low_pass_filter_sample_rate;
 
 #ifdef CLOWNAUDIO_CLOWNRESAMPLER
-	ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
+	ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
 #else
 	ma_data_converter_set_rate(&resampled_decoder->converter, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate);
 #endif

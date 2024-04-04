@@ -25,9 +25,9 @@ PERFORMANCE OF THIS SOFTWARE.
 
 extern bool is_oswrapper_audio_loaded;
 
-void* Decoder_OSWRAPPER_AUDIO_Create(const unsigned char *data, size_t data_size, bool loop, const DecoderSpec *wanted_spec, DecoderSpec *spec);
-void Decoder_OSWRAPPER_AUDIO_Destroy(void *decoder);
-void Decoder_OSWRAPPER_AUDIO_Rewind(void *decoder);
-size_t Decoder_OSWRAPPER_AUDIO_GetSamples(void *decoder, short *buffer, size_t frames_to_do);
+void* Decoder_OSWrapper_Create(const unsigned char *data, size_t data_size, bool loop, const DecoderSpec *wanted_spec, DecoderSpec *spec);
+void Decoder_OSWrapper_Destroy(void *decoder);
+void Decoder_OSWrapper_Rewind(void *decoder);
+size_t Decoder_OSWrapper_GetSamples(void *decoder, short *buffer, size_t frames_to_do);
 
 #endif /* DECODER_OSWRAPPER_AUDIO_H */

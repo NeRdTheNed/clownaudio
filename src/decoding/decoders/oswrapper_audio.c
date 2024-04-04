@@ -29,7 +29,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 bool is_oswrapper_audio_loaded = false;
 
-void* Decoder_OSWRAPPER_AUDIO_Create(const unsigned char *data, size_t data_size, bool loop, const DecoderSpec *wanted_spec, DecoderSpec *spec)
+void* Decoder_OSWrapper_Create(const unsigned char *data, size_t data_size, bool loop, const DecoderSpec *wanted_spec, DecoderSpec *spec)
 {
 	if (!is_oswrapper_audio_loaded)
 		return NULL;
@@ -67,7 +67,7 @@ void* Decoder_OSWRAPPER_AUDIO_Create(const unsigned char *data, size_t data_size
 	return NULL;
 }
 
-void Decoder_OSWRAPPER_AUDIO_Destroy(void *decoder_void)
+void Decoder_OSWrapper_Destroy(void *decoder_void)
 {
 	OSWrapper_audio_spec *audio_spec = (OSWrapper_audio_spec*)decoder_void;
 
@@ -76,14 +76,14 @@ void Decoder_OSWRAPPER_AUDIO_Destroy(void *decoder_void)
 	free(audio_spec);
 }
 
-void Decoder_OSWRAPPER_AUDIO_Rewind(void *decoder_void)
+void Decoder_OSWrapper_Rewind(void *decoder_void)
 {
 	OSWrapper_audio_spec *audio_spec = (OSWrapper_audio_spec*)decoder_void;
 
 	oswrapper_audio_rewind(audio_spec);
 }
 
-size_t Decoder_OSWRAPPER_AUDIO_GetSamples(void *decoder_void, short *buffer, size_t frames_to_do)
+size_t Decoder_OSWrapper_GetSamples(void *decoder_void, short *buffer, size_t frames_to_do)
 {
 	OSWrapper_audio_spec *audio_spec = (OSWrapper_audio_spec*)decoder_void;
 

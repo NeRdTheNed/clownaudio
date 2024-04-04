@@ -149,7 +149,7 @@ static const DecoderFunctions decoder_function_list[] = {
 	DECODER_FUNCTIONS(SNES_SPC),
 #endif
 #ifdef CLOWNAUDIO_OSWRAPPER_AUDIO
-	DECODER_FUNCTIONS(OSWRAPPER_AUDIO),
+	DECODER_FUNCTIONS(OSWrapper),
 #endif
 };
 

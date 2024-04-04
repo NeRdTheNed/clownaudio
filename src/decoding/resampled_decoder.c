@@ -143,9 +143,7 @@ static cc_bool ResamplerOutputCallback(void* const user_data, const cc_s32f* con
 	/* Output the frame. */
 	for (i = 0; i < total_samples; ++i)
 	{
-		cc_s32f sample;
-
-		sample = frame[i];
+		cc_s32f sample = frame[i];
 
 		/* Clamp the sample to 16-bit. */
 		if (sample > 0x7FFF)
@@ -193,10 +191,12 @@ void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate
 
 		#ifdef CLOWNAUDIO_CLOWNRESAMPLER
 			/* Set a wide sample rate ratio so that the low-pass filter can be wildly-adjusted. */
-			ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, 0x100, 1, resampled_decoder->low_pass_filter_sample_rate);
-			/* Apply the actual sample rates. */
-			ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate);
-			return resampled_decoder;
+			if (ClownResampler_HighLevel_Init(&resampled_decoder->clownresampler_state, resampled_decoder->out_channel_count, 0x100, 1, resampled_decoder->low_pass_filter_sample_rate))
+			{
+				/* Apply the actual sample rates. */
+				if (ClownResampler_HighLevel_Adjust(&resampled_decoder->clownresampler_state, resampled_decoder->in_sample_rate_scaled, resampled_decoder->out_sample_rate, resampled_decoder->low_pass_filter_sample_rate))
+					return resampled_decoder;
+			}
 		#else
 			ma_data_converter_config config = ma_data_converter_config_init(ma_format_s16, ma_format_s16, child_spec->channel_count, wanted_spec->channel_count, resampled_decoder->in_sample_rate, resampled_decoder->out_sample_rate);
 
@@ -210,9 +210,9 @@ void* ResampledDecoder_Create(DecoderStage *next_stage, bool dynamic_sample_rate
 
 				return resampled_decoder;
 			}
+		#endif
 
 			free(resampled_decoder);
-		#endif
 		}
 
 		next_stage->Destroy(next_stage->decoder);

@@ -46,15 +46,15 @@ static sf_count_t fseek_wrapper(sf_count_t offset, int origin, void *user)
 	enum MemoryStream_Origin memory_stream_origin;
 	switch (origin)
 	{
-		case SEEK_SET:
+		case SF_SEEK_SET:
 			memory_stream_origin = MEMORYSTREAM_START;
 			break;
 
-		case SEEK_CUR:
+		case SF_SEEK_CUR:
 			memory_stream_origin = MEMORYSTREAM_CURRENT;
 			break;
 
-		case SEEK_END:
+		case SF_SEEK_END:
 			memory_stream_origin = MEMORYSTREAM_END;
 			break;
 
@@ -62,7 +62,10 @@ static sf_count_t fseek_wrapper(sf_count_t offset, int origin, void *user)
 			return -1;
 	}
 
-	return (ROMemoryStream_SetPosition((ROMemoryStream*)user, offset, memory_stream_origin) ? 0 : -1);
+	if (!ROMemoryStream_SetPosition((ROMemoryStream*)user, offset, memory_stream_origin))
+		return -1;
+
+	return ROMemoryStream_GetPosition((ROMemoryStream*)user);
 }
 
 static sf_count_t ftell_wrapper(void *user)
@@ -82,14 +85,6 @@ static sf_count_t GetStreamSize(void *user)
 	return size;
 }
 
-static SF_VIRTUAL_IO sfvirtual = {
-	GetStreamSize,
-	fseek_wrapper,
-	fread_wrapper,
-	NULL,
-	ftell_wrapper
-};
-
 void* Decoder_libSndfile_Create(const unsigned char *data, size_t data_size, bool loop, const DecoderSpec *wanted_spec, DecoderSpec *spec)
 {
 	(void)loop;	// This is ignored in simple decoders
@@ -99,6 +94,14 @@ void* Decoder_libSndfile_Create(const unsigned char *data, size_t data_size, boo
 
 	if (decoder != NULL)
 	{
+		SF_VIRTUAL_IO sfvirtual = {
+			GetStreamSize,
+			fseek_wrapper,
+			fread_wrapper,
+			NULL,
+			ftell_wrapper
+		};
+
 		ROMemoryStream_Create(&decoder->memory_stream, data, data_size);
 
 		SF_INFO sf_info;
@@ -138,7 +141,7 @@ void Decoder_libSndfile_Rewind(void *decoder_void)
 {
 	Decoder_libSndfile *decoder = (Decoder_libSndfile*)decoder_void;
 
-	sf_seek(decoder->sndfile, 0, SEEK_SET);
+	sf_seek(decoder->sndfile, 0, SF_SEEK_SET);
 }
 
 size_t Decoder_libSndfile_GetSamples(void *decoder_void, short *buffer, size_t frames_to_do)
